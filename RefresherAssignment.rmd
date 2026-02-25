@@ -1,0 +1,50 @@
+```{r}
+library(tidyverse)
+```
+```{r}
+diamonddata = diamonds
+```
+```{r}
+ggplot(diamonddata, aes(x = carat, y = price)) +
+geom_point()
+```
+```{r}
+ggplot(diamonddata, aes(x = carat, y = price, color = cut)) +
+geom_point()
+```
+```{r}
+ggplot(diamonddata, aes(x = carat, y = price, color = cut)) +
+geom_point() + facet_wrap(~color)
+```
+```{r}
+inventory = read_csv("InventoryData.csv")
+glimpse(inventory)
+```
+```{r}
+mean(inventory$`On Hand`, na.rm = TRUE)
+
+```
+```{r}
+inventoryA = inventory %>% filter(Supplier == "A")
+
+nrow(inventoryA)
+```
+```{r}
+inventoryA <- inventoryA %>%
+  mutate(OnHandRatio = `On Hand` / `Annual Demand`)
+```
+```{r}
+avg_cost <- inventoryA %>%
+  group_by(`Item SKU`) %>%
+  summarize(SKUAvgCost = mean(`Cost per Unit ($)`, na.rm = TRUE))
+```
+```{r}
+avg_cost %>% filter(`Item SKU` == "011")
+```
+
+***Answers***
+Question 2:There are 10 columns
+Question 3: B. As caret increases price increases
+Question 4: A. As cut quality increases price increases
+Question 5: C. Creates a separate scatterplot for each “color”
+Question 6: D. character

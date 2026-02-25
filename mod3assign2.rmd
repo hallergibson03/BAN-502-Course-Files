@@ -1,0 +1,65 @@
+```{r}
+library(tidyverse)
+library(lubridate)
+library(tidymodels)
+```
+```{r}
+bike <- read_csv("bike_cleaned-4.csv")
+
+# Convert date variable
+bike <- bike %>%
+  mutate(
+    dteday = ymd(dteday),
+    hr = factor(hr)
+  )
+
+# Convert all character variables to factors
+bike <- bike %>%
+  mutate_if(is.character, factor)
+
+```
+```{r}
+set.seed(1234)
+
+split <- initial_split(bike, prop = 0.7, strata = count)
+train <- training(split)
+test  <- testing(split)
+
+nrow(train)
+
+```
+```{r}
+lm_model <- lm(count ~ season + mnth + hr + holiday + weekday + temp + weathersit,
+               data = train)
+
+summary(lm_model)$adj.r.squared
+
+```
+```{r}
+# Predict on training set
+predict_train <- predict(lm_model, newdata = train)
+
+# Store predictions in a tibble for consistency
+predict_train_tbl <- tibble(.pred = predict_train)
+
+# Histogram
+ggplot(predict_train_tbl, aes(x = .pred)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  labs(title = "Histogram of Predicted Count (Training Set)", x = "Predicted Count", y = "Frequency")
+
+```
+```{r}
+# Predict on testing set
+predict_test <- predict(lm_model, newdata = test)
+
+# Compute R-squared manually
+actual_test <- test$count
+pred_test <- predict_test
+
+ss_total <- sum((actual_test - mean(actual_test))^2)
+ss_res <- sum((actual_test - pred_test)^2)
+r_squared_test <- 1 - ss_res/ss_total
+round(r_squared_test, 4)
+
+```
+

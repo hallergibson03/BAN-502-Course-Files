@@ -1,0 +1,134 @@
+```{r}
+install.packages(c(
+  "tidyverse",
+  "tidymodels",
+  "glmnet",
+  "GGally",
+  "ggcorrplot",
+  "MASS",
+  "car",
+  "lubridate",
+  "lmtest",
+  "splines"
+))
+```
+```{r}
+install.packages("tidymodels")
+
+```
+```{r}
+install.packages("glmnet")
+
+```
+```{r}
+install.packages("GGally")
+```
+```{r}
+install.packages("ggcorrplot")
+```
+```{r}
+installed.packages("car")
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(glmnet)
+library(GGally)
+library(ggcorrplot)
+library(MASS)
+library(lubridate)
+library(splines)
+```
+
+```{r}
+bike <- read_csv("bike_cleaned-3.csv")
+```
+```{r}
+bike <- bike %>%
+  mutate(dteday = mdy(dteday))
+```
+```{r}
+bike <- bike %>%
+  mutate_if(is.character, as_factor)
+```
+```{r}
+bike <- bike %>%
+  mutate(hr = as_factor(hr))
+```
+```{r}
+bike %>%
+  select(count, windspeed, hum, atemp, temp) %>%
+  cor()
+```
+```{r}
+ggplot(bike, aes(x = season, y = count)) +
+  geom_boxplot()
+```
+```{r}
+hr_mod <- linear_reg() %>%
+  set_engine("lm")
+
+hr_fit <- hr_mod %>%
+  fit(count ~ hr, data = bike)
+```
+```{r}
+nlevels(bike$hr) - 1
+
+```
+
+```{r}
+levels(bike$hr)
+
+```
+```{r}
+tidy(hr_fit)
+
+```
+```{r}
+ggplot(bike, aes(x = temp, y = count)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess")
+```
+```{r}
+hr_temp_fit <- hr_mod %>%
+  fit(count ~ hr + temp, data = bike)
+```
+```{r}
+tidy(hr_temp_fit) %>%
+  filter(term == "hr23")
+```
+```{r}
+glance(hr_temp_fit)
+
+```
+```{r}
+temp_atemp_fit <- hr_mod %>%
+  fit(count ~ temp + atemp, data = bike)
+```
+```{r}
+glance(temp_atemp_fit)
+
+```
+```{r}
+tidy(temp_atemp_fit)
+
+```
+```{r}
+allmod <- lm(
+  count ~ season + mnth + hr + holiday + weekday + workingday +
+    weathersit + temp + atemp + hum + windspeed,
+  data = bike
+)
+
+```
+```{r}
+step_mod <- stepAIC(allmod, direction = "backward", trace = FALSE)
+summary(step_mod)
+
+
+```
+```{r}
+setdiff(names(coef(allmod)), names(coef(step_mod)))
+```
+

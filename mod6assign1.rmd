@@ -1,0 +1,74 @@
+```{r}
+install.packages("factoextra")
+```
+
+```{r}
+# Install if needed
+# install.packages(c("tidyverse", "cluster", "factoextra", "dendextend", "broom", "recipes"))
+
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(dendextend)
+library(broom)
+library(recipes)
+
+# Read in data
+trucks <- read.csv("trucks-1.csv")
+
+# View data
+glimpse(trucks)
+```
+```{r}
+ggplot(trucks, aes(x = Distance, y = Speeding)) +
+  geom_point() +
+  theme_minimal()
+```
+```{r}
+# Create recipe
+trucks_recipe <- recipe(~ Distance + Speeding, data = trucks) %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors())
+
+# Prep recipe
+trucks_prep <- prep(trucks_recipe)
+
+# Create cleaned dataset
+trucks_cleaned <- bake(trucks_prep, new_data = NULL)
+
+# View summary
+summary(trucks_cleaned)
+```
+```{r}
+round(max(trucks_cleaned$Distance), 4)
+```
+```{r}
+set.seed(64)
+
+k2 <- kmeans(trucks_cleaned, centers = 2, nstart = 25)
+
+# Add clusters to original dataset
+trucks_clustered <- trucks %>%
+  mutate(cluster = as.factor(k2$cluster))
+
+ggplot(trucks_clustered, aes(x = Distance, y = Speeding, color = cluster)) +
+  geom_point(size = 2) +
+  theme_minimal()
+```
+```{r}
+set.seed(412)
+
+fviz_nbclust(trucks_cleaned, kmeans, method = "silhouette", k.max = 8)
+```
+```{r}
+set.seed(412)
+
+wss <- map_dbl(1:8, function(k){
+  kmeans(trucks_cleaned, centers = k, nstart = 25)$tot.withinss
+})
+
+plot(1:8, wss, type = "b",
+     xlab = "Number of Clusters (k)",
+     ylab = "Within Cluster Sum of Squares")
+```
+

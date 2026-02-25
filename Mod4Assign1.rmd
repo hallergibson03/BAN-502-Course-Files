@@ -1,0 +1,60 @@
+```{r}
+install.packages("VIM")
+```
+```{r}
+install.packages("mice")
+```
+
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(VIM)
+library(mice)
+
+# Read in the data
+grades <- read.csv("class-grades.csv")
+```
+
+```{r}
+colSums(is.na(grades))
+
+```
+
+```{r}
+aggr(grades, numbers = TRUE, sortVars = TRUE, cex.axis = 0.7)
+
+```
+```{r}
+matrixplot(grades)
+
+```
+
+```{r}
+grades_row_deleted <- grades %>%
+  drop_na()
+nrow(grades_row_deleted)
+
+```
+```{r}
+grades_col_deleted <- grades %>%
+  select(where(~ !any(is.na(.))))
+ncol(grades_col_deleted)
+
+```
+
+```{r}
+set.seed(123)
+
+imputed_data <- mice(grades, m = 5, method = "pmm")
+```
+```{r}
+completed_grades <- complete(imputed_data)
+
+```
+
+```{r}
+mean(completed_grades$Final)
+
+```
+

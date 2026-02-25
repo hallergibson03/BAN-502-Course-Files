@@ -1,0 +1,69 @@
+---
+title: "Phase 1: Exploratory Analysis of Product Failure"
+author: Gibson, Halle
+output: word_document
+---
+
+
+```{r}
+library(tidyverse)
+library(skimr)
+library(janitor)
+library(ggplot2)
+library(GGally)
+```
+
+
+```{r}
+train=read_csv("train.csv") 
+test=read_csv("test.csv")
+```
+```{r}
+glimpse(train)
+summary(train)
+```
+
+```{r}
+train=train %>%
+  mutate(across(where(is.numeric),
+  ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+```
+
+```{r}
+table(train$failure)
+
+ggplot(train, aes(x = as.factor(failure))) +
+  geom_bar() +
+  labs(title= "Product Failure",
+  x= "Failure",
+  y= "Count")
+
+```
+```{r}
+numeric_data=train %>%
+  select(where(is.numeric))
+
+cor_matrix <- cor(numeric_data, use="complete.obs")
+
+cor_matrix
+```
+```{r}
+train %>%
+  group_by(failure) %>%
+  summarise(across(where(is.numeric), mean, na.rm=TRUE))
+```
+
+```{r}
+ggplot(train, aes(x=as.factor(failure), y=loading)) +
+  geom_boxplot() +
+  labs(title= "Loading vs Failure")
+```
+```{r}
+ggplot(train, aes(x=product_code, fill=as.factor(failure))) +
+  geom_bar(position="fill") +
+  labs(title= "Failure Rate by Product Code",
+  y= "Proportion")
+```
+
+
+

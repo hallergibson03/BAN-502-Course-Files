@@ -1,0 +1,169 @@
+```{r}
+install.packages("ROCR")
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(ROCR)
+```
+```{r}
+parole <- read.csv("parole.csv")
+
+```
+```{r}
+parole <- parole %>%
+  mutate(
+    male = factor(male, levels = c(0,1), labels = c("Female","Male")),
+    race = factor(race, levels = c(1,2), labels = c("White","Other")),
+    state = factor(state, levels = c(1,2,3,4), labels = c("Other","KY","LA","VA")),
+    crime = factor(crime, levels = c(1,2,3,4),
+                   labels = c("Other","Larceny","Drug","Driving")),
+    multiple.offenses = factor(multiple.offenses,
+                               levels = c(0,1),
+                               labels = c("No","Yes")),
+    violator = factor(violator,
+                      levels = c(0,1),
+                      labels = c("No","Yes"))
+  )
+```
+```{r}
+table(parole$violator)
+
+```
+```{r}
+set.seed(12345)
+
+split <- initial_split(parole, prop = 0.7, strata = violator)
+train <- training(split)
+test  <- testing(split)
+
+levels(train$violator)
+
+train <- train %>%
+  mutate(violator = fct_relevel(violator, c("No","Yes")))
+
+levels(train$violator)
+```
+```{r}
+# Gender vs violator
+train %>%
+  group_by(male) %>%
+  summarize(rate = mean(violator == "Yes"))
+
+# State vs violator
+train %>%
+  group_by(state) %>%
+  summarize(rate = mean(violator == "Yes"))
+
+# Max sentence vs violator
+ggplot(train, aes(x = violator, y = max.sentence)) +
+  geom_boxplot()
+```
+```{r}
+model_state <- glm(violator ~ state,
+                   data = train,
+                   family = binomial)
+
+summary(model_state)
+```
+```{r}
+AIC(model_state)
+
+```
+```{r}
+model_full <- glm(
+  violator ~ state + multiple.offenses + race,
+  data = train,
+  family = binomial
+)
+
+summary(model_full)
+```
+```{r}
+new_parolee <- data.frame(
+  state = "LA",
+  multiple.offenses = "Yes",
+  race = "White"
+)
+
+predict(model_full, new_parolee, type = "response")
+```
+```{r}
+train_probs <- predict(model_full, train, type = "response")
+pred <- prediction(train_probs, train$violator)
+
+roc_perf <- performance(pred, "sens", "spec")
+
+sens <- roc_perf@y.values[[1]]
+spec <- roc_perf@x.values[[1]]
+cutoffs <- roc_perf@alpha.values[[1]]
+
+# Maximize sensitivity + specificity
+best_cutoff <- cutoffs[which.max(sens + spec)]
+best_cutoff
+```
+```{r}
+predicted <- ifelse(train_probs >= best_cutoff, 1, 0)
+actual <- ifelse(train$violator == "Yes", 1, 0)
+
+accuracy <- mean(predicted == actual)
+round(accuracy, 3)
+
+```
+```{r}
+sensitivity <- sum(predicted == 1 & actual == 1) / sum(actual == 1)
+round(sensitivity, 3)
+```
+```{r}
+best_cutoff
+round(accuracy, 3)
+nrow(train)
+```
+
+```{r}
+set.seed(12345)
+
+# Use initial_split with prop=0.7 and stratified by violator
+split <- initial_split(parole, prop = 0.7, strata = violator)
+train <- training(split)
+test  <- testing(split)
+
+nrow(train)  # Must be 472
+```
+```{r}
+split <- initial_split(parole, prop = 472/675, strata = violator)
+train <- training(split)
+test <- testing(split)
+nrow(train)  # Should now be 472
+```
+```{r}
+train <- train %>% mutate(violator = fct_relevel(violator, c("No","Yes")))
+
+```
+```{r}
+pred <- prediction(train_probs, train$violator)
+roc_perf <- performance(pred, "sens", "spec")
+sens <- roc_perf@y.values[[1]]
+spec <- roc_perf@x.values[[1]]
+cutoffs <- roc_perf@alpha.values[[1]]
+best_cutoff <- cutoffs[which.max(sens + spec)]
+
+```
+```{r}
+predicted <- ifelse(train_probs >= best_cutoff, 1, 0)
+actual <- ifelse(train$violator == "Yes", 1, 0)
+
+accuracy <- mean(predicted == actual)
+round(accuracy, 3)
+
+sensitivity <- sum(predicted == 1 & actual == 1) / sum(actual == 1)
+round(sensitivity, 3)
+
+```
+
+
+
+
+
+
